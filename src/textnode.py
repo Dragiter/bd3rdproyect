@@ -1,5 +1,6 @@
 from enum import Enum
 from htmlnode import LeafNode
+import re
 
 class TextType(Enum):
     TEXT = "text"
@@ -40,7 +41,7 @@ def text_node_to_html_node(text_node:TextNode) -> LeafNode:
         return LeafNode("img", "", {"src": text_node.url, "alt": text_node.text})
     raise ValueError(f"invalid {text_node.text_type}")
 
-def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: TextType) -> list[TextNode]:
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
     nl = []
     for x in old_nodes:
         nl2 = []
@@ -59,3 +60,66 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
                 nl2.append(TextNode(tl[y], text_type))
         nl.extend(nl2)
     return nl
+
+def extract_markdown_images(text):
+    pattern = r"!\[([^\[\]]*)\]\(([^\(\)]*)\)"
+    return re.findall(pattern, text)
+
+def extract_markdown_links(text):
+    pattern = r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)"
+    return re.findall(pattern, text)
+
+def split_nodes_image(old_nodes):
+    nl = []
+    for x in old_nodes:
+        if x.text_type != TextType.TEXT:
+            nl.append(x)
+            continue
+        text = x.text
+        image = extract_markdown_images(text)
+        if len(image) == 0:
+            nl.append(x)
+            continue
+        for y in image:
+            split = text.split(f"![{y[0]}]({y[1]})", 1)
+            if len(split) != 2:
+                raise ValueError("image not closed")
+            if split[0] != "":
+                nl.append(TextNode(split[0], TextType.TEXT))
+            nl.append(TextNode(y[0], TextType.IMAGE, y[1]))
+            text = split[1]
+        if text != "":
+            nl.append(TextNode(text, TextType.TEXT))
+    return nl
+
+def split_nodes_links(old_nodes):
+    nl = []
+    for x in old_nodes:
+        if x.text_type != TextType.TEXT:
+            nl.append(x)
+            continue
+        text = x.text
+        link = extract_markdown_links(text)
+        if len(link) == 0:
+            nl.append(x)
+            continue
+        for y in link:
+            split = text.split(f"[{y[0]}]({y[1]})", 1)
+            if len(split) != 2:
+                raise ValueError("link not closed")
+            if split[0] != "":
+                nl.append(TextNode(split[0], TextType.TEXT))
+            nl.append(TextNode(y[0], TextType.LINK, y[1]))
+            text = split[1]
+        if text != "":
+            nl.append(TextNode(text, TextType.TEXT))
+    return nl
+
+def text_to_textnodes(text):
+    nodes = [TextNode(text, TextType.TEXT)]
+    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    nodes = split_nodes_image(nodes)
+    nodes = split_nodes_links(nodes)
+    return nodes
