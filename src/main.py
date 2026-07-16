@@ -1,10 +1,9 @@
-from textnode import TextNode, TextType
-
+import os
+from copystatic import copystatic
 
 def main():
-    a = TextNode("This is some anchor text", TextType.link, "https://www.boot.dev")
+    copystatic(os.path.abspath('static'),  os.path.abspath('public'))
 
-    print(a)
 
 
 main()
