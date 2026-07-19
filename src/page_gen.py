@@ -31,3 +31,23 @@ def generate_page(from_path, template_path, dest_path):
         os.makedirs(dest_path)
         to_file = open(dest_path, "w")
         to_file.write(template)
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    md_list = get_md_list(dir_path_content)
+    for md in md_list:
+        rel_path = os.path.relpath(md, dir_path_content)
+        dest = os.path.join(dest_dir_path, rel_path.replace("index.md", "index.html"))
+        os.makedirs(os.path.dirname(dest),0o777,True)
+        generate_page(md, template_path, dest)
+
+
+def get_md_list(content_directory):
+    rl = []
+    for x in os.listdir(content_directory):
+        current_path = os.path.join(content_directory, x)
+        if x.endswith(".md"):
+            rl.append(current_path)
+        elif os.path.isdir(current_path):
+            il = get_md_list(current_path)
+            rl.extend(il)
+    return rl
