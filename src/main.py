@@ -7,7 +7,7 @@ cont_path = "./content"
 temp_path = "./template.html"
 dest_path = "./docs"
 
-Basepath = sys.argv
+Basepath = sys.argv[1]
 
 def main():
     copystatic(os.path.abspath('static'),  dest_path)
